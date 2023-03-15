@@ -28,6 +28,12 @@ url = "https://download.pytorch.org/whl/cpu"
 secondary = true
 default = false
 
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.1.1"
+isort = "^5.12.0"
+black = "^23.1.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

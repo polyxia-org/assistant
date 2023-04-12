@@ -153,3 +153,7 @@ dmypy.json
 cython_debug/
 
 .vscode/
+
+# Precise wake up word engine
+precise-engine/
+packages/torch-1.13.0a0+git7c98e70-cp38-cp38-linux_aarch64.whl

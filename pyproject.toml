@@ -2,8 +2,7 @@
 name = "assistant"
 version = "0.1.0"
 description = ""
-authors = ["croumegous <cyril.roumegous@gmail.com>"]
-readme = "README.md"
+authors = ["Polyxia org"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
@@ -21,13 +20,13 @@ torch = { version = "=1.13.1", source = "torch" }
 pyaudio = "^0.2.13"
 transformers = "^4.27.1"
 pygobject = "^3.44.1"
+precise-runner = {file = "packages/precise_runner-0.3.1-py3-none-any.whl"}
 
 [[tool.poetry.source]]
 name = "torch"
 url = "https://download.pytorch.org/whl/cpu"
 secondary = true
 default = false
-
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.1.1"

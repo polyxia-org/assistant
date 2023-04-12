@@ -15,7 +15,6 @@ import speech_recognition as sr
 import torch
 from dotenv import load_dotenv
 
-# import pyaudio
 from gtts import gTTS
 from transformers import pipeline
 
@@ -23,6 +22,10 @@ from assistant.utils import playsound
 from assistant.utils.colors import bcolors
 from assistant.utils.pyaudio_logs import noalsaerr
 
+from precise_runner import PreciseEngine, PreciseRunner
+from os.path import abspath
+
+# Logging setup
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -30,8 +33,9 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-print = lambda *args, **kwargs: None  # Don't print
 
+trigger_voice = False
+speech_recognizer = sr.Recognizer()
 
 def speech_to_text(audio: sr.AudioData) -> str:
     try:
@@ -53,7 +57,7 @@ def speech_to_text(audio: sr.AudioData) -> str:
         logger.error("Speech Recognition could not understand audio")
 
 
-def text_to_speech(text: str, language: str = "en"):
+def text_to_speech(text: str, language: str = "fr"):
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as temp_file:
         tts = gTTS(text=text, lang=language)
         tts.save(temp_file.name)
@@ -61,9 +65,17 @@ def text_to_speech(text: str, language: str = "en"):
 
 
 def nlu(text: str) -> str:
-    res = requests.post(os.getenv("NLU_ENDPOINT"), json={"input_text": text})
-    text_output = res.json().get("response")
-    return ftfy.fix_text(text_output)
+    try:
+        res = requests.post(os.getenv("NLU_ENDPOINT"), json={"input_text": text})
+        res.raise_for_status()
+        text_output = res.json().get("response")
+        return ftfy.fix_text(text_output)
+    except requests.exceptions.HTTPError as err:
+        logger.error(f"HTTP error occurred: {err}")
+        return "Désolé je ne peux pas vous répondre pour le moment"
+    except Exception as err:
+        logger.error(f"An error occurred: {err}")
+        return "Désolé je ne peux pas vous répondre pour le moment"
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,31 +92,34 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     return args
 
-
 def main():
-    # Parse args
-    args = parse_args()
-    if args.verbose:
-        logger.setLevel(logging.DEBUG)
+    logger.info("Polyxia is started")
+    logger.info(f"{bcolors.GREEN}Polyxia (fr): Je suis prête, dites Polyxia ! {bcolors.ENDC}")
+    text_to_speech("Je vous écoute", "fr")
+    try:
+        # Parse args
+        args = parse_args()
+        if args.verbose:
+            logger.setLevel(logging.DEBUG)
 
-    # Create recognizer
-    r = sr.Recognizer()
-    r.energy_threshold = args.energy_threshold
-    r.dynamic_energy_threshold = False
-
-    while True:
-        try:
-            with noalsaerr() as n, sr.Microphone() as source:
-                # TODO ad wake up keyword polyxia
-                # Speech to text
+        def voice_assist():
+            """Listen to the user intent when the wakeword is detected
+            """
+            # Stop listening to the wake word
+            runner.stop()
+            # Create recognizer
+            with noalsaerr(), sr.Microphone() as source:
                 logger.info("Listening...")
-                audio = r.listen(source)
-                text = speech_to_text(audio)
+                speech_recognizer.energy_threshold = args.energy_threshold
+                speech_recognizer.dynamic_energy_threshold = False
+                audio = speech_recognizer.listen(source)
 
+                text = speech_to_text(audio)
                 logger.info(f"{bcolors.RED}Human: {text} {bcolors.ENDC}")
 
                 if text is not None:
                     response = nlu(text)
+                    #response = "Ma réponse"
                     try:
                         language = langdetect.detect(response)
                     except langdetect.lang_detect_exception.LangDetectException:
@@ -114,11 +129,36 @@ def main():
                     )
 
                     text_to_speech(response, language)
+            # Listening to the wake word again
+            with noalsaerr(): 
+                logger.info(f"{bcolors.GREEN}Polyxia (fr): Souhaitez-vous autre chose ?{bcolors.ENDC}")
+                text_to_speech("Souhaitez-vous autre chose ? Dites Polyxia !", "fr")
+                runner.start()
 
-        except KeyboardInterrupt:
-            break
 
-
+        def trigger_wakeword():
+            """Activate listening
+            """
+            global trigger_voice
+            trigger_voice = True
+            logger.info("Wake word `Polyxia` detected")
+            playsound.playsound(abspath("assistant/utils/activate.wav"), True)
+        
+        with noalsaerr():
+            engine = PreciseEngine('packages/precise-engine/precise-engine', 'polyxia.pb')
+            runner = PreciseRunner(engine, on_activation=lambda: trigger_wakeword(), sensitivity=0.8, trigger_level=10)
+            runner.start()
+    
+        while True:
+            time.sleep(0.1)
+            global trigger_voice
+            if trigger_voice:
+                voice_assist()
+                trigger_voice = False 
+    
+    except KeyboardInterrupt:
+        runner.stop()
+    
 if __name__ == "__main__":
     load_dotenv()
     if os.getenv("NLU_ENDPOINT") is None:

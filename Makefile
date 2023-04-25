@@ -1,10 +1,10 @@
 .PHONY: install-precise-engine install-poetry modify-torch-line install-dependency
 
-ARCH := $(shell uname -m)
+IS_JETSON := $(shell if [ -f /etc/nv_tegra_release ]; then echo true; else echo false; fi)
 
 install-precise-engine:
 	if ! [ -d precise-engine ]; then \
-		if [ $(ARCH) = "aarch64" ]; then \
+		if [ $(IS_JETSON) = true ]; then \
 			wget https://github.com/MycroftAI/precise-data/raw/dist/aarch64/precise-engine_0.3.0_aarch64.tar.gz; \
 			tar xvf precise-engine_0.3.0_aarch64.tar.gz -C packages/; \
 			rm precise-engine_0.3.0_aarch64.tar.gz; \
@@ -23,7 +23,7 @@ install-poetry:
 	fi
 
 modify-torch-line:
-	if [ $(ARCH) = "aarch64" ]; then \
+	if [ $(IS_JETSON) = true ]; then \
 		sed -i 's/^torch =.*/torch = {file = "packages\/torch-1.13.0a0+git7c98e70-cp38-cp38-linux_aarch64.whl"}/' pyproject.toml; \
 		export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring; \
 		poetry lock; \
@@ -37,7 +37,7 @@ install-dependency:
 	poetry install	
 
 modify-alsa-config:
-	if [ $(ARCH) = "aarch64" ]; then \
+	if [ $(IS_JETSON) = true ]; then \
 		sudo cp -f asound.conf /etc/asound.conf; \
 	fi
 

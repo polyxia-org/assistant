@@ -33,4 +33,12 @@ install-dependency:
 	export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring; \
 	poetry install; \
 
-install: install-precise-engine install-poetry modify-torch-line install-dependency
+modify-alsa-config:
+	if [ $(ARCH) = "aarch64" ]; then \
+		sudo cp -f asound.conf /etc/asound.conf; \
+	fi
+
+install: install-precise-engine install-poetry modify-torch-line install-dependency modify-alsa-config
+
+run:
+	poetry run python assistant/app.py

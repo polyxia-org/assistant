@@ -6,11 +6,11 @@ install-precise-engine:
 	if ! [ -d precise-engine ]; then \
 		if [ $(ARCH) = "aarch64" ]; then \
 			wget https://github.com/MycroftAI/precise-data/raw/dist/aarch64/precise-engine_0.3.0_aarch64.tar.gz; \
-			tar xvf precise-engine_0.3.0_aarch64.tar.gz; \
+			tar xvf precise-engine_0.3.0_aarch64.tar.gz -C packages/; \
 			rm precise-engine_0.3.0_aarch64.tar.gz; \
 		else \
 			wget https://github.com/MycroftAI/precise-data/raw/dist/$(ARCH)/precise-engine.tar.gz; \
-			tar xvf precise-engine.tar.gz; \
+			tar xvf precise-engine.tar.gz -C packages/; \
 			rm precise-engine.tar.gz; \
 		fi \
 	fi
@@ -19,6 +19,7 @@ install-poetry:
 	if ! `command -v poetry`; then \
 		sudo apt -y install curl; \
 		(curl -sSL https://install.python-poetry.org | python3 -); \
+		export PATH="$HOME/.local/bin:$PATH"; \
 	fi
 
 modify-torch-line:
@@ -31,7 +32,9 @@ modify-torch-line:
 install-dependency:
 	sudo apt-get install -y portaudio19-dev libgirepository1.0-dev ; \
 	export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring; \
-	poetry install; \
+	poetry env use python3; \
+	poetry lock; \
+	poetry install	
 
 modify-alsa-config:
 	if [ $(ARCH) = "aarch64" ]; then \

@@ -109,6 +109,7 @@ def main():
             runner.stop()
             # Create recognizer
             with noalsaerr(), sr.Microphone() as source:
+                playsound.playsound(abspath("assistant/utils/activate.wav"), True)
                 logger.info("Listening...")
                 speech_recognizer.energy_threshold = args.energy_threshold
                 speech_recognizer.dynamic_energy_threshold = False
@@ -131,7 +132,7 @@ def main():
                     text_to_speech(response, language)
             # Listening to the wake word again
             with noalsaerr(): 
-                logger.info(f"{bcolors.GREEN}Polyxia (fr): Souhaitez-vous autre chose ?{bcolors.ENDC}")
+                logger.info(f"{bcolors.GREEN}Polyxia (fr): Souhaitez-vous autre chose ? Dites Polyxia !{bcolors.ENDC}")
                 text_to_speech("Souhaitez-vous autre chose ? Dites Polyxia !", "fr")
                 runner.start()
 
@@ -142,7 +143,6 @@ def main():
             global trigger_voice
             trigger_voice = True
             logger.info("Wake word `Polyxia` detected")
-            playsound.playsound(abspath("assistant/utils/activate.wav"), True)
         
         with noalsaerr():
             engine = PreciseEngine('packages/precise-engine/precise-engine', 'polyxia.pb')

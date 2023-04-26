@@ -22,6 +22,7 @@ from assistant.utils import playsound
 from assistant.utils.colors import bcolors
 from assistant.utils.pyaudio_logs import noalsaerr
 
+from faster_whisper import WhisperModel
 from precise_runner import PreciseEngine, PreciseRunner
 from os.path import abspath
 
@@ -47,10 +48,10 @@ def speech_to_text(audio: sr.AudioData) -> str:
         wav_stream = io.BytesIO(wav_bytes)
         audio_array, sampling_rate = sf.read(wav_stream)
         audio_array = audio_array.astype(np.float32)
-
-        recognized_text = generator(audio_array)["text"].strip()
-        end = time.time()
-        logger.debug("Took {}".format(end - start))
+        segments, _ = model.transcribe(audio_array)
+        recognized_text = "".join(segment.text for segment in segments)
+        # recognized_text = generator(audio_array)["text"].strip()
+        logger.debug(f"Took {time.time() - start:.3f}s to recognize")
 
         return recognized_text
     except sr.UnknownValueError:
@@ -173,9 +174,10 @@ if __name__ == "__main__":
     if os.getenv("NLU_ENDPOINT") is None:
         raise ValueError("NLU_ENDPOINT not found in environment variables")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    generator = pipeline(
-        model="openai/whisper-base",
-        device=device,
-        generate_kwargs={"language": "<|fr|>", "task": "transcribe"},
-    )
+    # generator = pipeline(
+    #     model="openai/whisper-base",
+    #     device=device,
+    #     generate_kwargs={"language": "<|fr|>", "task": "transcribe"},
+    # )
+    model = WhisperModel("base", device="cpu", compute_type="int8")
     main()

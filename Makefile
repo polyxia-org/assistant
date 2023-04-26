@@ -4,14 +4,14 @@ IS_JETSON := $(shell if [ -f /etc/nv_tegra_release ]; then echo true; else echo 
 
 install-precise-engine:
 	if ! [ -d precise-engine ]; then \
-		if [ $(IS_JETSON) = true ]; then \
+		if [ $(IS_JETSON) = true ] || [ $(shell uname -o) = Darwin ]; then \
 			wget https://github.com/MycroftAI/precise-data/raw/dist/aarch64/precise-engine_0.3.0_aarch64.tar.gz; \
 			tar xvf precise-engine_0.3.0_aarch64.tar.gz -C packages/; \
 			rm precise-engine_0.3.0_aarch64.tar.gz; \
 		else \
-			wget https://github.com/MycroftAI/precise-data/raw/dist/$(ARCH)/precise-engine.tar.gz; \
-			tar xvf precise-engine.tar.gz -C packages/; \
-			rm precise-engine.tar.gz; \
+			wget https://github.com/MycroftAI/mycroft-precise/releases/download/v0.3.0/precise-engine_0.3.0_x86_64.tar.gz; \
+			tar xvf precise-engine_0.3.0_x86_64.tar.gz -C packages/; \
+			rm precise-engine_0.3.0_x86_64.tar.gz; \
 		fi \
 	fi
 	

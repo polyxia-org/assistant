@@ -35,7 +35,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 trigger_voice = False
-speech_recognizer = sr.Recognizer()
+
 
 def speech_to_text(audio: sr.AudioData) -> str:
     try:
@@ -66,7 +66,8 @@ def text_to_speech(text: str, language: str = "fr"):
 
 def nlu(text: str) -> str:
     try:
-        res = requests.post(os.getenv("NLU_ENDPOINT"), json={"input_text": text})
+        res = requests.post(os.getenv("NLU_ENDPOINT"),
+                            json={"input_text": text})
         res.raise_for_status()
         text_output = res.json().get("response")
         return ftfy.fix_text(text_output)
@@ -92,15 +93,21 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     return args
 
+
 def main():
     logger.info("Polyxia is started")
-    logger.info(f"{bcolors.GREEN}Polyxia (fr): Je suis prête, dites Polyxia ! {bcolors.ENDC}")
-    text_to_speech("Je vous écoute", "fr")
+    logger.info(
+        f"{bcolors.GREEN}Polyxia (fr): Je suis prête, dites Polyxia ! {bcolors.ENDC}")
+    text_to_speech("Je suis prête, dites Polyxia !", "fr")
     try:
         # Parse args
         args = parse_args()
         if args.verbose:
             logger.setLevel(logging.DEBUG)
+
+        speech_recognizer = sr.Recognizer()
+        speech_recognizer.energy_threshold = args.energy_threshold
+        speech_recognizer.dynamic_energy_threshold = False
 
         def voice_assist():
             """Listen to the user intent when the wakeword is detected
@@ -109,10 +116,9 @@ def main():
             runner.stop()
             # Create recognizer
             with noalsaerr(), sr.Microphone() as source:
-                playsound.playsound(abspath("assistant/utils/activate.wav"), True)
+                playsound.playsound(
+                    abspath("assistant/utils/activate.wav"), True)
                 logger.info("Listening...")
-                speech_recognizer.energy_threshold = args.energy_threshold
-                speech_recognizer.dynamic_energy_threshold = False
                 audio = speech_recognizer.listen(source)
 
                 text = speech_to_text(audio)
@@ -120,7 +126,6 @@ def main():
 
                 if text is not None:
                     response = nlu(text)
-                    #response = "Ma réponse"
                     try:
                         language = langdetect.detect(response)
                     except langdetect.lang_detect_exception.LangDetectException:
@@ -131,11 +136,12 @@ def main():
 
                     text_to_speech(response, language)
             # Listening to the wake word again
-            with noalsaerr(): 
-                logger.info(f"{bcolors.GREEN}Polyxia (fr): Souhaitez-vous autre chose ? Dites Polyxia !{bcolors.ENDC}")
-                text_to_speech("Souhaitez-vous autre chose ? Dites Polyxia !", "fr")
+            with noalsaerr():
+                logger.info(
+                    f"{bcolors.GREEN}Polyxia (fr): Souhaitez-vous autre chose ? Dites Polyxia !{bcolors.ENDC}")
+                text_to_speech(
+                    "Souhaitez-vous autre chose ? Dites Polyxia !", "fr")
                 runner.start()
-
 
         def trigger_wakeword():
             """Activate listening
@@ -143,22 +149,25 @@ def main():
             global trigger_voice
             trigger_voice = True
             logger.info("Wake word `Polyxia` detected")
-        
+
         with noalsaerr():
-            engine = PreciseEngine('packages/precise-engine/precise-engine', 'polyxia.pb')
-            runner = PreciseRunner(engine, on_activation=lambda: trigger_wakeword(), sensitivity=0.8, trigger_level=10)
+            engine = PreciseEngine(
+                'packages/precise-engine/precise-engine', 'polyxia.pb')
+            runner = PreciseRunner(engine, on_activation=lambda: trigger_wakeword(
+            ), sensitivity=0.8, trigger_level=10)
             runner.start()
-    
+
         while True:
             time.sleep(0.1)
             global trigger_voice
             if trigger_voice:
                 voice_assist()
-                trigger_voice = False 
-    
+                trigger_voice = False
+
     except KeyboardInterrupt:
         runner.stop()
-    
+
+
 if __name__ == "__main__":
     load_dotenv()
     if os.getenv("NLU_ENDPOINT") is None:

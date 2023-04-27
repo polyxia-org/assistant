@@ -24,6 +24,7 @@ from assistant.utils.pyaudio_logs import noalsaerr
 
 from precise_runner import PreciseEngine, PreciseRunner
 from os.path import abspath
+from pynput import keyboard
 
 # Logging setup
 warnings.filterwarnings("ignore")
@@ -97,7 +98,7 @@ def parse_args() -> argparse.Namespace:
 def main():
     logger.info("Polyxia is started")
     logger.info(
-        f"{bcolors.GREEN}Polyxia (fr): Je suis prête, dites Polyxia ! {bcolors.ENDC}")
+        f"{bcolors.GREEN}Polyxia (fr): Je suis prête, dites Polyxia ! (Ou appuyez sur <espace>){bcolors.ENDC}")
     text_to_speech("Je suis prête, dites Polyxia !", "fr")
     try:
         # Parse args
@@ -138,7 +139,7 @@ def main():
             # Listening to the wake word again
             with noalsaerr():
                 logger.info(
-                    f"{bcolors.GREEN}Polyxia (fr): Souhaitez-vous autre chose ? Dites Polyxia !{bcolors.ENDC}")
+                    f"{bcolors.GREEN}Polyxia (fr): Souhaitez-vous autre chose ? Dites Polyxia ! (Ou appuyez sur <espace>){bcolors.ENDC}")
                 text_to_speech(
                     "Souhaitez-vous autre chose ? Dites Polyxia !", "fr")
                 runner.start()
@@ -156,6 +157,15 @@ def main():
             runner = PreciseRunner(engine, on_activation=lambda: trigger_wakeword(
             ), sensitivity=0.8, trigger_level=10)
             runner.start()
+
+        # Handle wakeword with keyboard
+        def on_release(key):
+            if key == keyboard.Key.space:
+                trigger_wakeword()
+                return False
+
+        with keyboard.Listener(on_release=on_release) as listener:
+            listener.join()
 
         while True:
             time.sleep(0.1)

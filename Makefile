@@ -24,6 +24,7 @@ install-poetry:
 
 modify-torch-line:
 	if [ $(IS_JETSON) = true ]; then \
+		wget -P ./packages https://github.com/polyxia-org/assistant/releases/download/v1.0.0/torch-1.13.0a0+git7c98e70-cp38-cp38-linux_aarch64.whl; \
 		sed -i 's/^torch =.*/torch = {file = "packages\/torch-1.13.0a0+git7c98e70-cp38-cp38-linux_aarch64.whl"}/' pyproject.toml; \
 		export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring; \
 		poetry lock; \
